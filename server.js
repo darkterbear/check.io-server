@@ -8,7 +8,7 @@ const MongoStore = require('connect-mongo')(session)
 const bodyParser = require('body-parser')
 const app = express()
 // const schemas = require('./schemas')
-// const routes = require('./routes')
+const routes = require('./routes')
 // const auth = require('./auth')
 // const sockets = require('./sockets')
 // const Members = schemas.Member
@@ -87,7 +87,7 @@ app.use((req, res, next) => {
 	next()
 })
 
-// routes(app)
+routes(app)
 
 server.listen(port, () => {
 	console.log('Hangry API is live on port ' + port)
