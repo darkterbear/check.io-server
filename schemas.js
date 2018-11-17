@@ -10,6 +10,7 @@ const RestaurantSchema = new Schema(
 			lat: Number,
 			lon: Number
 		},
+		email: String,
 		stripeToken: String,
 		passHashed: String,
 		transactionHistory: [
