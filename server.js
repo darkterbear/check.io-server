@@ -7,11 +7,11 @@ const mongoose = require('mongoose')
 const MongoStore = require('connect-mongo')(session)
 const bodyParser = require('body-parser')
 const app = express()
-// const schemas = require('./schemas')
+
 const routes = require('./routes')
 // const auth = require('./auth')
 // const sockets = require('./sockets')
-// const Members = schemas.Member
+
 const port = 3001
 
 // string helper functions
