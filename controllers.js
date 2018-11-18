@@ -33,7 +33,7 @@ const createStripeRestaurant = external_account => {
 				external_account
 			},
 			(err, account) => {
-				if (err) reject('Error creating Custom Stripe Account for restaurant')
+				if (err) reject(err)
 				else resolve(account)
 			}
 		)
@@ -46,8 +46,8 @@ const createStripeCustomer = token => {
 			{
 				source: token
 			},
-			(err, account) => {
-				if (err) reject('Error creating Stripe Customer')
+			(err, customer) => {
+				if (err) reject(err)
 				else resolve(customer)
 			}
 		)
@@ -92,7 +92,8 @@ exports.registerRestaurant = async (req, res) => {
 		nearbyUsers: []
 	})
 
-	restaurant.save()
+	req.session.authenticated = true
+	req.session._id = (await restaurant.save())._id
 
 	return res.status(200).end()
 }
@@ -113,7 +114,8 @@ exports.registerUser = async (req, res) => {
 		transactionHistory: []
 	})
 
-	user.save()
+	req.session.authenticated = true
+	req.session._id = (await user.save())._id
 
 	return res.status(200).end()
 }
@@ -169,11 +171,17 @@ exports.billUser = async (req, res) => {
 
 	await createStripeCharge(restaurant, user, amount)
 
+	const today = new Date()
 	const transaction = new Transaction({
 		description,
 		restaurant: restaurant._id,
 		amount,
-		customer: user._id
+		customer: user._id,
+		date: {
+			day: today.getDate(),
+			month: today.getMonth(),
+			year: today.getFullYear()
+		}
 	})
 
 	const transactionId = await transaction.save()._id
@@ -192,15 +200,27 @@ exports.billUser = async (req, res) => {
 }
 
 exports.getUserTransactionHistory = async (req, res) => {
+	const userId = res.locals.user._id
+
+	const populatedUser = await User.findOne({ _id: userId })
+		.populate('transactionHistory')
+		.exec()
+
 	return res
 		.status(200)
-		.json(res.locals.user.transactionHistory)
+		.json(populatedUser.transactionHistory)
 		.end()
 }
 
 exports.getRestaurantTransactionHistory = async (req, res) => {
+	const restaurantId = res.locals.restaurant._id
+
+	const populatedRestaurant = await Restaurant.findOne({ _id: restaurantId })
+		.populate('transactionHistory')
+		.exec()
+
 	return res
 		.status(200)
-		.json(res.locals.restaurant.transactionHistory)
+		.json(populatedRestaurant.transactionHistory)
 		.end()
 }

@@ -9,7 +9,8 @@ exports.authenticateRestaurant = async (req, res, next) => {
 	const restaurant = await Restaurant.findOne({ email }).exec()
 
 	if (!restaurant) return res.status(400).end()
-	if (!auth.check(password, restaurant.passHashed)) return res.status(401).end()
+	if (!(await auth.check(password, restaurant.passHashed)))
+		return res.status(401).end()
 
 	res.locals.restaurant = restaurant
 
@@ -22,7 +23,8 @@ exports.authenticateUser = async (req, res, next) => {
 	const user = await User.findOne({ email }).exec()
 
 	if (!user) return res.status(400).end()
-	if (!auth.check(password, user.passHashed)) return res.status(401).end()
+	if (!(await auth.check(password, user.passHashed)))
+		return res.status(401).end()
 
 	res.locals.user = user
 

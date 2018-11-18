@@ -76,6 +76,11 @@ const TransactionSchema = new Schema(
 		customer: {
 			type: Schema.Types.ObjectId,
 			ref: 'User'
+		},
+		date: {
+			day: Number,
+			month: Number,
+			year: Number
 		}
 	},
 	{

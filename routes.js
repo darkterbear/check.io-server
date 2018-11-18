@@ -7,6 +7,20 @@ module.exports = app => {
 	})
 
 	app
+		.route('/user/reauth')
+		.get(middleware.verifyUserSession)
+		.get((req, res) => {
+			return res.status(200).end()
+		})
+
+	app
+		.route('/restaurant/reauth')
+		.get(middleware.verifyRestaurantSession)
+		.get((req, res) => {
+			return res.status(200).end()
+		})
+
+	app
 		.route('/restaurant/login')
 		.post(middleware.authenticateRestaurant)
 		.post(controllers.loginRestaurant)
