@@ -16,6 +16,38 @@ module.exports = app => {
 		.post(middleware.authenticateUser)
 		.post(controllers.loginUser)
 
+	app.route('/logout').post(controllers.logout)
+
 	app.route('/restaurant/register').post(controllers.registerRestaurant)
 	app.route('/user/register').post(controllers.registerUser)
+
+	app
+		.route('/user/update-location')
+		.post(middleware.verifyUserSession)
+		.post(controllers.updateLocation)
+
+	app
+		.route('/restaurant/check-in-user')
+		.post(middleware.verifyRestaurantSession)
+		.post(controllers.checkInUser)
+
+	app
+		.route('/restaurant/check-out-user')
+		.post(middleware.verifyRestaurantSession)
+		.post(controllers.checkOutUser)
+
+	app
+		.route('/restaurant/bill-user')
+		.post(middleware.verifyRestaurantSession)
+		.post(controllers.billUser)
+
+	app
+		.route('/user/get-transaction-history')
+		.get(middleware.verifyUserSession)
+		.get(controllers.getUserTransactionHistory)
+
+	app
+		.route('/restaurant/get-transaction-history')
+		.get(middleware.verifyUserSession)
+		.get(controllers.getRestaurantTransactionHistory)
 }

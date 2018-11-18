@@ -18,6 +18,13 @@ exports.loginUser = (req, res) => {
 	return res.status(200).end()
 }
 
+exports.logout = (req, res) => {
+	req.session.destroy(err => {
+		if (err) res.status(500).end()
+		else res.status(200).end()
+	})
+}
+
 const createStripeRestaurant = external_account => {
 	return new Promise((resolve, reject) => {
 		stripe.accounts.create(
@@ -47,6 +54,24 @@ const createStripeCustomer = token => {
 	})
 }
 
+const createStripeCharge = (restaurant, customer, amount) => {
+	new Promise((resolve, reject) => {
+		stripe.charges.create(
+			{
+				amount: amount * 100, //convert to cents
+				currency: 'usd',
+				source: customer.stripeToken,
+				destination: {
+					account: restaurant.stripeId
+				}
+			},
+			charge => {
+				resolve(charge)
+			}
+		)
+	})
+}
+
 exports.registerRestaurant = async (req, res) => {
 	const { name, email, location, password, accountToken } = req.body
 
@@ -54,12 +79,15 @@ exports.registerRestaurant = async (req, res) => {
 
 	const passHashed = await auth.hash(password)
 
+	// TODO: find nearby users right here
+
 	const restaurant = new Restaurant({
 		name,
 		email,
 		location,
 		passHashed,
 		stripeId: stripeAccount.id,
+		stripeToken: accountToken,
 		transactionHistory: [],
 		nearbyUsers: []
 	})
@@ -76,11 +104,12 @@ exports.registerUser = async (req, res) => {
 
 	const passHashed = await auth.hash(password)
 
-	const user = new Restaurant({
+	const user = new User({
 		name,
 		email,
 		passHashed,
 		stripeId: stripeCustomer.id,
+		stripeToken: cardToken,
 		transactionHistory: []
 	})
 
@@ -89,4 +118,89 @@ exports.registerUser = async (req, res) => {
 	return res.status(200).end()
 }
 
-exports.populateRestaurantStripeTokens = async (req, res) => {}
+exports.updateLocation = async (req, res) => {
+	const { lat, lon } = req.body
+	const user = res.locals.user
+
+	await User.updateOne(
+		{ _id: user._id },
+		{ $set: { location: { lat, lon } } }
+	).exec()
+
+	// TODO: socket to nearby users
+
+	return res.status(200).end()
+}
+
+exports.checkInUser = async (req, res) => {
+	const userId = req.body.userId
+	const restaurant = res.locals.restaurant
+
+	// TODO: check that the user is actually in range
+
+	// TODO: check user isn't checked into another restaurant already
+
+	await Restaurant.updateOne(
+		{ _id: restaurant._id },
+		{ $push: { checkedInUsers: userId } }
+	)
+
+	return res.status(200).end()
+}
+
+exports.checkOutUser = async (req, res) => {
+	const userId = req.body.userId
+	const restaurant = res.locals.restaurant
+
+	await Restaurant.updateOne(
+		{ _id: restaurant._id },
+		{ $pull: { checkedInUsers: userId } }
+	)
+
+	return res.status(200).end()
+}
+
+exports.billUser = async (req, res) => {
+	const { userId, amount, description } = req.body // amount is in USD
+	const restaurant = res.locals.restaurant
+	const user = await User.findOne({ _id: userId }).exec()
+
+	if (!user) return res.status(404).end()
+
+	await createStripeCharge(restaurant, user, amount)
+
+	const transaction = new Transaction({
+		description,
+		restaurant: restaurant._id,
+		amount,
+		customer: user._id
+	})
+
+	const transactionId = await transaction.save()._id
+
+	await User.updateOne(
+		{ _id: user._id },
+		{ $push: { transactionHistory: transactionId } }
+	)
+
+	await Restaurant.updateOne(
+		{ _id: restaurant._id },
+		{ $push: { transactionHistory: transactionId } }
+	)
+
+	return res.status(200).end()
+}
+
+exports.getUserTransactionHistory = async (req, res) => {
+	return res
+		.status(200)
+		.json(res.locals.user.transactionHistory)
+		.end()
+}
+
+exports.getRestaurantTransactionHistory = async (req, res) => {
+	return res
+		.status(200)
+		.json(res.locals.restaurant.transactionHistory)
+		.end()
+}

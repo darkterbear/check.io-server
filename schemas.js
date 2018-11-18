@@ -11,6 +11,7 @@ const RestaurantSchema = new Schema(
 			lon: Number
 		},
 		email: String,
+		stripeId: String,
 		stripeToken: String,
 		passHashed: String,
 		transactionHistory: [
@@ -20,6 +21,12 @@ const RestaurantSchema = new Schema(
 			}
 		],
 		nearbyUsers: [
+			{
+				type: Schema.Types.ObjectId,
+				ref: 'User'
+			}
+		],
+		checkedInUsers: [
 			{
 				type: Schema.Types.ObjectId,
 				ref: 'User'
@@ -43,6 +50,7 @@ const UserSchema = new Schema(
 			lat: Number,
 			lon: Number
 		},
+		stripeId: String,
 		stripeToken: String,
 		passHashed: String,
 		transactionHistory: [
@@ -64,16 +72,11 @@ const TransactionSchema = new Schema(
 			type: Schema.Types.ObjectId,
 			ref: 'Restaurant'
 		},
-		total: Number,
-		payers: [
-			{
-				user: {
-					type: Schema.Types.ObjectId,
-					ref: 'User'
-				},
-				amount: Number
-			}
-		]
+		amount: Number,
+		customer: {
+			type: Schema.Types.ObjectId,
+			ref: 'User'
+		}
 	},
 	{
 		collection: 'transactions'
