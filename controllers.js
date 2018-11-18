@@ -1,6 +1,6 @@
 'use strict'
 
-var stripe = require('stripe')('sk_test_K2UOZ9A6kKiPBQzEgPfmKuWG')
+var stripe = require('stripe')(process.env.STRIPE_SK)
 const { Restaurant, User, Transaction } = require('./schemas')
 const auth = require('./auth')
 

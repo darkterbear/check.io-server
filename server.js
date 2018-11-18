@@ -6,6 +6,7 @@ const session = require('express-session')
 const mongoose = require('mongoose')
 const MongoStore = require('connect-mongo')(session)
 const bodyParser = require('body-parser')
+require('dotenv').config()
 const app = express()
 
 const routes = require('./routes')
