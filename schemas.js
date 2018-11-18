@@ -72,7 +72,7 @@ const TransactionSchema = new Schema(
 			type: Schema.Types.ObjectId,
 			ref: 'Restaurant'
 		},
-		amount: Number,
+		amount: Number, // in dollars
 		customer: {
 			type: Schema.Types.ObjectId,
 			ref: 'User'
