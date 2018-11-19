@@ -48,7 +48,7 @@ app.set('trust proxy', 1)
 
 const sessionMiddleware = session({
 	name: 'session_id',
-	secret: 'vMDwy1KQ4M1zu5y1qfQU4B83kMyTdvgZt9smCC1BZfESDGcRRgaMAnzRT6sl4wFX',
+	secret: process.env.SESSION_SECRET,
 	resave: true,
 	store: new MongoStore({
 		mongooseConnection: mongoose.connection
