@@ -118,41 +118,42 @@ exports.updateLocation = async (req, res) => {
 		}
 	).exec()
 
-	// TODO: update restaurants in and out of range
-	const pushedResults = await Restaurant.update(
-		{
-			location: {
-				$near: {
-					$maxDistance: 100,
-					$geometry: {
-						type: 'Point',
-						coordinates: [lon, lat]
-					}
+	const newNear = await Restaurant.find({
+		location: {
+			$near: {
+				$maxDistance: 100,
+				$geometry: {
+					type: 'Point',
+					coordinates: [lon, lat]
 				}
-			},
-			nearbyUsers: { $ne: user._id }
+			}
 		},
+		nearbyUsers: { $ne: user._id }
+	}).exec()
+
+	const newFar = await Restaurant.find({
+		location: {
+			$near: {
+				$minDistance: 100,
+				$maxDistance: Number.MAX_SAFE_INTEGER,
+				$geometry: {
+					type: 'Point',
+					coordinates: [lon, lat]
+				}
+			}
+		},
+		nearbyUsers: user._id
+	}).exec()
+
+	await Restaurant.updateMany(
+		{ _id: { $in: newNear.map(r => r._id) } },
 		{ $push: { nearbyUsers: user._id } }
-	).exec()
+	)
 
-	const pulledResults = await Restaurant.update(
-		{
-			location: {
-				$near: {
-					$minDistance: 100,
-					$maxDistance: Number.MAX_SAFE_INTEGER,
-					$geometry: {
-						type: 'Point',
-						coordinates: [lon, lat]
-					}
-				}
-			},
-			nearbyUsers: user._id
-		},
+	await Restaurant.updateMany(
+		{ _id: { $in: newFar.map(r => r._id) } },
 		{ $pull: { nearbyUsers: user._id } }
-	).exec()
-
-	console.log(pushedResults, pulledResults)
+	)
 
 	// TODO: socket to nearby restaurants
 
