@@ -43,7 +43,6 @@ exports.registerRestaurant = async (req, res) => {
 
 	const passHashed = await auth.hash(password)
 
-	// TODO: find nearby users right here
 	const nearbyUsers = await User.find({
 		location: {
 			$near: {
@@ -53,7 +52,8 @@ exports.registerRestaurant = async (req, res) => {
 					coordinates: [location.lon, location.lat]
 				}
 			}
-		}
+		},
+		locationTimestamp: { $gt: Date.now() - 1000 * 60 } // location must not be older than 15 min
 	}).exec()
 	console.log(nearbyUsers)
 
@@ -112,12 +112,15 @@ exports.updateLocation = async (req, res) => {
 				location: {
 					type: 'Point',
 					coordinates: [lon, lat]
-				}
+				},
+				locationTimestamp: Date.now()
 			}
 		}
 	).exec()
 
-	// TODO: socket to nearby users
+	// TODO: update restaurants in and out of range
+
+	// TODO: socket to nearby restaurants
 
 	return res.status(200).end()
 }

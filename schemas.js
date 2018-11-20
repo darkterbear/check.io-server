@@ -58,6 +58,7 @@ const UserSchema = new Schema(
 				default: [0, 0]
 			}
 		},
+		locationTimestamp: Number,
 		stripeId: String,
 		stripeToken: String,
 		passHashed: String,
