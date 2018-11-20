@@ -7,8 +7,10 @@ const RestaurantSchema = new Schema(
 	{
 		name: String,
 		location: {
-			lat: Number,
-			lon: Number
+			type: {
+				type: String
+			},
+			coordinates: [Number]
 		},
 		email: String,
 		stripeId: String,
@@ -47,8 +49,14 @@ const UserSchema = new Schema(
 			trim: true
 		},
 		location: {
-			lat: Number,
-			lon: Number
+			type: {
+				type: String,
+				default: 'Point'
+			},
+			coordinates: {
+				type: [Number],
+				default: [0, 0]
+			}
 		},
 		stripeId: String,
 		stripeToken: String,
@@ -87,6 +95,9 @@ const TransactionSchema = new Schema(
 		collection: 'transactions'
 	}
 )
+
+RestaurantSchema.index({ location: '2dsphere' })
+UserSchema.index({ location: '2dsphere' })
 
 var Restaurant = mongoose.model('Restaurant', RestaurantSchema, 'restaurants')
 var User = mongoose.model('User', UserSchema, 'users')

@@ -44,16 +44,31 @@ exports.registerRestaurant = async (req, res) => {
 	const passHashed = await auth.hash(password)
 
 	// TODO: find nearby users right here
+	const nearbyUsers = await User.find({
+		location: {
+			$near: {
+				$maxDistance: 100,
+				$geometry: {
+					type: 'Point',
+					coordinates: [location.lon, location.lat]
+				}
+			}
+		}
+	}).exec()
+	console.log(nearbyUsers)
 
 	const restaurant = new Restaurant({
 		name,
 		email,
-		location,
+		location: {
+			type: 'Point',
+			coordinates: [location.lon, location.lat]
+		},
 		passHashed,
 		stripeId: stripeAccount.id,
 		stripeToken: data.id,
 		transactionHistory: [],
-		nearbyUsers: []
+		nearbyUsers: nearbyUsers.map(u => u._id)
 	})
 
 	await restaurant.save()
@@ -92,7 +107,14 @@ exports.updateLocation = async (req, res) => {
 
 	await User.updateOne(
 		{ _id: user._id },
-		{ $set: { location: { lat, lon } } }
+		{
+			$set: {
+				location: {
+					type: 'Point',
+					coordinates: [lon, lat]
+				}
+			}
+		}
 	).exec()
 
 	// TODO: socket to nearby users
