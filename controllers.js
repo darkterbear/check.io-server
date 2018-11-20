@@ -119,30 +119,38 @@ exports.updateLocation = async (req, res) => {
 	).exec()
 
 	// TODO: update restaurants in and out of range
-	const pushedResults = await Restaurant.update({
-		location: {
-			$near: {
-				$maxDistance: 100,
-				$geometry: {
-					type: 'Point',
-					coordinates: [lon, lat]
+	const pushedResults = await Restaurant.update(
+		{
+			location: {
+				$near: {
+					$maxDistance: 100,
+					$geometry: {
+						type: 'Point',
+						coordinates: [lon, lat]
+					}
 				}
-			}
-		}
-	}, { $push: { nearbyUsers: user._id}}).exec()
+			},
+			nearbyUsers: { $ne: user._id }
+		},
+		{ $push: { nearbyUsers: user._id } }
+	).exec()
 
-	const pulledResults = await Restaurant.update({
-		location: {
-			$near: {
-				$minDistance: 100,
-				$maxDistance: Number.MAX_SAFE_INTEGER,
-				$geometry: {
-					type: 'Point',
-					coordinates: [lon, lat]
+	const pulledResults = await Restaurant.update(
+		{
+			location: {
+				$near: {
+					$minDistance: 100,
+					$maxDistance: Number.MAX_SAFE_INTEGER,
+					$geometry: {
+						type: 'Point',
+						coordinates: [lon, lat]
+					}
 				}
-			}
-		}
-	}, { $pull: { nearbyUsers: user._id}}).exec()
+			},
+			nearbyUsers: user._id
+		},
+		{ $pull: { nearbyUsers: user._id } }
+	).exec()
 
 	console.log(pushedResults, pulledResults)
 
