@@ -3,6 +3,7 @@
 var stripe = require('stripe')(process.env.STRIPE_SK)
 const { Restaurant, User, Transaction } = require('./schemas')
 const auth = require('./auth')
+const request = require('request')
 
 exports.loginRestaurant = (req, res) => {
 	req.session.authenticated = true
@@ -72,10 +73,51 @@ const createStripeCharge = (restaurant, customer, amount) => {
 	})
 }
 
-exports.registerRestaurant = async (req, res) => {
-	const { name, email, location, password, accountToken } = req.body
+const createCard = (number, month, year, cvc) => {
+	return new Promise((resolve, reject) => {
+		var dataString =
+			'card[number]=' +
+			number +
+			'&card[exp_month]=' +
+			month +
+			'&card[exp_year]=' +
+			year +
+			'&card[cvc]=' +
+			cvc +
+			'&card[currency]=usd'
 
-	const stripeAccount = await createStripeRestaurant(accountToken)
+		var options = {
+			url: 'https://api.stripe.com/v1/tokens',
+			method: 'POST',
+			body: dataString,
+			auth: {
+				user: process.env.STRIPE_SK,
+				pass: ''
+			}
+		}
+
+		request(options, (error, response, body) => {
+			if (error) reject(error)
+			else resolve(JSON.parse(body))
+		})
+	})
+}
+
+exports.registerRestaurant = async (req, res) => {
+	const {
+		name,
+		email,
+		location,
+		password,
+		cardNumber,
+		month,
+		year,
+		cvc
+	} = req.body
+
+	const data = await createCard(cardNumber, month, year, cvc)
+
+	const stripeAccount = await createStripeRestaurant(data.id) // stripe token
 
 	const passHashed = await auth.hash(password)
 
@@ -87,7 +129,7 @@ exports.registerRestaurant = async (req, res) => {
 		location,
 		passHashed,
 		stripeId: stripeAccount.id,
-		stripeToken: accountToken,
+		stripeToken: data.id,
 		transactionHistory: [],
 		nearbyUsers: []
 	})
