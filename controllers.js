@@ -1,9 +1,8 @@
 'use strict'
 
-var stripe = require('stripe')(process.env.STRIPE_SK)
 const { Restaurant, User, Transaction } = require('./schemas')
 const auth = require('./auth')
-const request = require('request')
+const stripe = require('./stripe')
 
 exports.loginRestaurant = (req, res) => {
 	req.session.authenticated = true
@@ -26,83 +25,6 @@ exports.logout = (req, res) => {
 	})
 }
 
-const createStripeRestaurant = external_account => {
-	return new Promise((resolve, reject) => {
-		stripe.accounts.create(
-			{
-				type: 'custom',
-				external_account
-			},
-			(err, account) => {
-				if (err) reject(err)
-				else resolve(account)
-			}
-		)
-	})
-}
-
-const createStripeCustomer = token => {
-	return new Promise((resolve, reject) => {
-		stripe.customers.create(
-			{
-				source: token
-			},
-			(err, customer) => {
-				if (err) reject(err)
-				else resolve(customer)
-			}
-		)
-	})
-}
-
-const createStripeCharge = (restaurant, customer, amount) => {
-	new Promise((resolve, reject) => {
-		stripe.charges.create(
-			{
-				amount: amount * 100, //convert to cents
-				currency: 'usd',
-				source: customer.stripeToken,
-				destination: {
-					account: restaurant.stripeId
-				}
-			},
-			charge => {
-				resolve(charge)
-			}
-		)
-	})
-}
-
-const createCard = (number, month, year, cvc) => {
-	return new Promise((resolve, reject) => {
-		var dataString =
-			'card[number]=' +
-			number +
-			'&card[exp_month]=' +
-			month +
-			'&card[exp_year]=' +
-			year +
-			'&card[cvc]=' +
-			cvc +
-			'&card[currency]=usd'
-
-		var options = {
-			url: 'https://api.stripe.com/v1/tokens',
-			method: 'POST',
-			body: dataString,
-			auth: {
-				user: process.env.STRIPE_SK,
-				pass: ''
-			}
-		}
-
-		request(options, (error, response, body) => {
-			if (error) reject(error)
-			else resolve(JSON.parse(body))
-		})
-	})
-}
-
 exports.registerRestaurant = async (req, res) => {
 	const {
 		name,
@@ -115,9 +37,9 @@ exports.registerRestaurant = async (req, res) => {
 		cvc
 	} = req.body
 
-	const data = await createCard(cardNumber, month, year, cvc)
+	const data = await stripe.createCard(cardNumber, month, year, cvc)
 
-	const stripeAccount = await createStripeRestaurant(data.id) // stripe token
+	const stripeAccount = await stripe.createStripeRestaurant(data.id) // stripe token
 
 	const passHashed = await auth.hash(password)
 
@@ -134,6 +56,8 @@ exports.registerRestaurant = async (req, res) => {
 		nearbyUsers: []
 	})
 
+	await restaurant.save()
+
 	req.session.authenticated = true
 	req.session._id = (await restaurant.save())._id
 
@@ -143,7 +67,7 @@ exports.registerRestaurant = async (req, res) => {
 exports.registerUser = async (req, res) => {
 	const { name, email, password, cardToken } = req.body
 
-	const stripeCustomer = await createStripeCustomer(cardToken)
+	const stripeCustomer = await stripe.createStripeCustomer(cardToken)
 
 	const passHashed = await auth.hash(password)
 
@@ -211,7 +135,7 @@ exports.billUser = async (req, res) => {
 
 	if (!user) return res.status(404).end()
 
-	await createStripeCharge(restaurant, user, amount)
+	await stripe.createStripeCharge(restaurant, user, amount)
 
 	const today = new Date()
 	const transaction = new Transaction({
