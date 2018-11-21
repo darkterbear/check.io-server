@@ -40,6 +40,7 @@ var db = mongoose.connection
 
 db.once('open', async () => {
 	console.log('Connected to MongoDB at mongodb://localhost/hangryDB')
+	require('./cron').startCron()
 })
 
 // sessions
