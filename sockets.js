@@ -39,14 +39,15 @@ module.exports = {
 			})
 		})
 	},
-	onNearby: (customer, restaurants) => {
-		restaurants.forEach(r => {
-			io.to(r._id.toString()).emit('userNearby', customer)
+	onNearby: (customer, restaurantIds) => {
+		restaurantIds.forEach(rId => {
+			io.to(rId.toString()).emit('userNearby', customer)
 		})
 	},
-	onNotNearby: (customer, restaurants) => {
-		restaurants.forEach(r => {
-			io.to(r._id.toString()).emit('userLeft', customer)
+	onNotNearby: (customer, restaurantIds) => {
+		restaurantIds.forEach(rId => {
+			io.to(rId.toString()).emit('userLeft', customer)
 		})
-	}
+	},
+	io
 }

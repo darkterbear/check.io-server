@@ -58,6 +58,10 @@ const UserSchema = new Schema(
 				default: [0, 0]
 			}
 		},
+		checkedInRestaurant: {
+			type: Schema.Types.ObjectId,
+			ref: 'Restaurant'
+		},
 		locationTimestamp: Number,
 		stripeId: String,
 		stripeToken: String,

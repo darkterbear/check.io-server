@@ -10,8 +10,7 @@ require('dotenv').config()
 const app = express()
 
 const routes = require('./routes')
-// const auth = require('./auth')
-// const sockets = require('./sockets')
+const sockets = require('./sockets')
 
 const port = 3001
 
@@ -64,7 +63,7 @@ const sessionMiddleware = session({
 	unset: 'destroy'
 })
 
-// sockets.init(server, sessionMiddleware)
+sockets.init(server, sessionMiddleware)
 
 app.use(sessionMiddleware)
 app.use(

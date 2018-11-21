@@ -3,6 +3,7 @@
 const { Restaurant, User, Transaction } = require('./schemas')
 const auth = require('./auth')
 const stripe = require('./stripe')
+const Socket = require('./sockets')
 
 exports.loginRestaurant = (req, res) => {
 	req.session.authenticated = true
@@ -53,7 +54,7 @@ exports.registerRestaurant = async (req, res) => {
 				}
 			}
 		},
-		locationTimestamp: { $gt: Date.now() - 1000 * 60 } // location must not be older than 15 min
+		locationTimestamp: { $gt: Date.now() - 1000 * 60 * 10 } // location must not be older than 10 min
 	}).exec()
 	console.log(nearbyUsers)
 
@@ -155,7 +156,8 @@ exports.updateLocation = async (req, res) => {
 		{ $pull: { nearbyUsers: user._id } }
 	)
 
-	// TODO: socket to nearby restaurants
+	Socket.onNearby(user, newNear.map(r => r._id))
+	Socket.onNotNearby(user, newFar.map(r => r._id))
 
 	return res.status(200).end()
 }
@@ -164,14 +166,39 @@ exports.checkInUser = async (req, res) => {
 	const userId = req.body.userId
 	const restaurant = res.locals.restaurant
 
-	// TODO: check that the user is actually in range
+	// check that the user is actually in range
+	const customers = await User.find({
+		location: {
+			$near: {
+				$maxDistance: 100,
+				$geometry: {
+					type: 'Point',
+					coordinates: restaurant.location
+				}
+			}
+		}
+	}).exec()
 
-	// TODO: check user isn't checked into another restaurant already
+	if (
+		customers.filter(c => c._id.toString() === userId.toString()).length !== 1
+	) {
+		return res.status(400).end()
+	}
 
+	// check user isn't checked into another restaurant already
+	if ((await User.findOne({ _id: userId }).exec()).checkedInRestaurant)
+		return res.status(400).end()
+
+	// check the customer in
 	await Restaurant.updateOne(
 		{ _id: restaurant._id },
 		{ $push: { checkedInUsers: userId } }
-	)
+	).exec()
+
+	await User.updateOne(
+		{ _id: userId },
+		{ $set: { checkedInRestaurant: restaurant._id } }
+	).exec()
 
 	return res.status(200).end()
 }
@@ -238,15 +265,17 @@ exports.getUserTransactionHistory = async (req, res) => {
 		.end()
 }
 
-exports.getRestaurantTransactionHistory = async (req, res) => {
+exports.getRestaurant = async (req, res) => {
 	const restaurantId = res.locals.restaurant._id
 
 	const populatedRestaurant = await Restaurant.findOne({ _id: restaurantId })
 		.populate('transactionHistory')
+		.populate('nearbyUsers')
+		.populate('checkedInUsers')
 		.exec()
 
 	return res
 		.status(200)
-		.json(populatedRestaurant.transactionHistory)
+		.json(populatedRestaurant)
 		.end()
 }

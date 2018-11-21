@@ -55,7 +55,7 @@ module.exports = app => {
 		.get(controllers.getUserTransactionHistory)
 
 	app
-		.route('/restaurant/get-transaction-history')
-		.get(middleware.verifyUserSession)
-		.get(controllers.getRestaurantTransactionHistory)
+		.route('/restaurant/get')
+		.get(middleware.verifyRestaurantSession)
+		.get(controllers.getRestaurant)
 }
