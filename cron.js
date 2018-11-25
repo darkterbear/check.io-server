@@ -2,21 +2,30 @@
 
 const { Restaurant, User } = require('./schemas')
 const CronJob = require('cron').CronJob
+const sockets = require('./sockets')
+const locationExpireDuration = require('./server').locationExpireDuration
 
 const purgeOldLocations = async () => {
-	console.log('cron run')
-	const threshold = Date.now() - 1000 * 60 * 10 // can't be older than 10 minutes
+	const threshold = Date.now() - locationExpireDuration // can't be older than 10 minutes
 	const usersWithOldLocations = await User.find({
 		locationTimestamp: { $lt: threshold, $gt: 0 }
 	}).exec()
 
 	const bulk = Restaurant.collection.initializeUnorderedBulkOp()
+	var execute = false
 
-	usersWithOldLocations.forEach(u => {
+	for (const u of usersWithOldLocations) {
+		const restaurants = await Restaurant.find({ nearbyUsers: u._id }).exec()
+
+		if (!restaurants || restaurants.length === 0) return
+		execute = true
+
+		sockets.onNotNearby(u, restaurants.map(r => r._id.toString()))
+
 		bulk.find({ nearbyUsers: u._id }).update({ $pull: { nearbyUsers: u._id } })
-	})
+	}
 
-	if (usersWithOldLocations.length >= 1) bulk.execute()
+	if (execute) bulk.execute()
 }
 
 exports.startCron = () => {

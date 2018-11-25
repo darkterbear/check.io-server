@@ -93,3 +93,7 @@ routes(app)
 server.listen(port, () => {
 	console.log('Hangry API is live on port ' + port)
 })
+
+module.exports = {
+	locationExpireDuration: 1000 * 60 * 1
+}

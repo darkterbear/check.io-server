@@ -4,6 +4,7 @@ const { Restaurant, User, Transaction } = require('./schemas')
 const auth = require('./auth')
 const stripe = require('./stripe')
 const Socket = require('./sockets')
+const locationExpireDuration = require('./server').locationExpireDuration
 
 exports.loginRestaurant = (req, res) => {
 	req.session.authenticated = true
@@ -54,7 +55,7 @@ exports.registerRestaurant = async (req, res) => {
 				}
 			}
 		},
-		locationTimestamp: { $gt: Date.now() - 1000 * 60 * 10 } // location must not be older than 10 min
+		locationTimestamp: { $gt: Date.now() - locationExpireDuration } // location must not be older than 10 min
 	}).exec()
 	console.log(nearbyUsers)
 

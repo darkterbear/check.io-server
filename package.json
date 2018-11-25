@@ -5,7 +5,8 @@
 	"main": "server.js",
 	"scripts": {
 		"start": "pm2 start server.js --name hangry-server",
-		"restart": "pm2 restart hangry-server"
+		"restart": "pm2 restart hangry-server",
+		"stop": "pm2 delete hangry-server"
 	},
 	"author": "Terrance Li",
 	"dependencies": {
